@@ -9,6 +9,7 @@ class Video extends React.Component {
 }
 
 Video.propTypes = {
+  hudHidden: PropTypes.bool,
   host: PropTypes.string,
   token: PropTypes.string,
   displayName: PropTypes.string,
