@@ -1,24 +1,56 @@
-import PropTypes from 'prop-types'
-import React from 'react'
-import { requireNativeComponent } from 'react-native'
+import PropTypes from "prop-types";
+import React from "react";
+import {findNodeHandle, requireNativeComponent, UIManager} from "react-native";
+
 
 class Video extends React.Component {
-  render () {
-    return <RNTVideo {...this.props} />
+  connect() {
+    UIManager.dispatchViewManagerCommand(
+      findNodeHandle(this),
+      UIManager.RNTVideo.Commands.connect,
+      [],
+    );
+  }
+
+  disconnect() {
+    UIManager.dispatchViewManagerCommand(
+      findNodeHandle(this),
+      UIManager.RNTVideo.Commands.disconnect,
+      [],
+    );
+  }
+
+  switchCamera() {
+    UIManager.dispatchViewManagerCommand(
+      findNodeHandle(this),
+      UIManager.RNTVideo.Commands.switchCamera,
+      [],
+    );
+  }
+
+  toggleCameraOn() {
+    UIManager.dispatchViewManagerCommand(
+      findNodeHandle(this),
+      UIManager.RNTVideo.Commands.toggleCameraOn,
+      [],
+    );
+  }
+
+  render() {
+    return <RNTVideo {...this.props} />;
   }
 }
 
 Video.propTypes = {
-  hudHidden: PropTypes.bool,
   host: PropTypes.string,
   token: PropTypes.string,
   displayName: PropTypes.string,
   resourceId: PropTypes.string,
   onConnect: PropTypes.func,
   onDisconnect: PropTypes.func,
-  onFailure: PropTypes.func
-}
+  onFailure: PropTypes.func,
+};
 
-var RNTVideo = requireNativeComponent('RNTVideo', Video)
+var RNTVideo = requireNativeComponent('RNTVideo', Video);
 
-module.exports = Video
+module.exports = Video;
