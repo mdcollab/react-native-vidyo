@@ -10,6 +10,7 @@
 		CAF77DD01F8CAE57002E9685 /* RNTVideoView.m in Sources */ = {isa = PBXBuildFile; fileRef = CAF77DCC1F8CAE57002E9685 /* RNTVideoView.m */; };
 		CAF77DD11F8CAE57002E9685 /* RNTVideoManager.m in Sources */ = {isa = PBXBuildFile; fileRef = CAF77DCE1F8CAE57002E9685 /* RNTVideoManager.m */; };
 		CAF77E641F8CD323002E9685 /* VidyoClientIOS.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 88DAA1291F8CBC0000CF69E6 /* VidyoClientIOS.framework */; };
+		E274AB931FA2ADE7005B77F1 /* Logger.m in Sources */ = {isa = PBXBuildFile; fileRef = E274AB921FA2ADE6005B77F1 /* Logger.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -34,6 +35,8 @@
 		CAF77DCD1F8CAE57002E9685 /* RNTVideoManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RNTVideoManager.h; sourceTree = "<group>"; };
 		CAF77DCE1F8CAE57002E9685 /* RNTVideoManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RNTVideoManager.m; sourceTree = "<group>"; };
 		CAF77E171F8CCED9002E9685 /* VidyoClientIOS.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VidyoClientIOS.framework; path = "../../../../../../Downloads/VidyoClient-iOSSDK 3/lib/ios/VidyoClientIOS.framework"; sourceTree = "<group>"; };
+		E274AB911FA2ADE6005B77F1 /* Logger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Logger.h; sourceTree = "<group>"; };
+		E274AB921FA2ADE6005B77F1 /* Logger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Logger.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -59,6 +62,8 @@
 		58B511D21A9E6C8500147676 = {
 			isa = PBXGroup;
 			children = (
+				E274AB911FA2ADE6005B77F1 /* Logger.h */,
+				E274AB921FA2ADE6005B77F1 /* Logger.m */,
 				CAF77DCD1F8CAE57002E9685 /* RNTVideoManager.h */,
 				CAF77DCE1F8CAE57002E9685 /* RNTVideoManager.m */,
 				CAF77DCA1F8CAE57002E9685 /* RNTVideoView.h */,
@@ -136,6 +141,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CAF77DD11F8CAE57002E9685 /* RNTVideoManager.m in Sources */,
+				E274AB931FA2ADE7005B77F1 /* Logger.m in Sources */,
 				CAF77DD01F8CAE57002E9685 /* RNTVideoView.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
