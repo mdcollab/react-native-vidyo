@@ -41,15 +41,10 @@ RCT_EXPORT_VIEW_PROPERTY(onFailure, RCTBubblingEventBlock)
 #pragma mark EXPORT methods
 
 RCT_EXPORT_METHOD(connect:(nonnull NSNumber *)reactTag) {
-    const char *host = [self.videoView.host UTF8String];
-    const char *token = [self.videoView.token UTF8String];
-    const char *displayName = [self.videoView.displayName UTF8String];
-    const char *resourceId = [self.videoView.resourceId UTF8String];
-
-    BOOL status = [self.connector Connect:host
-                                    Token:token
-                              DisplayName:displayName
-                               ResourceId:resourceId
+    BOOL status = [self.connector Connect:[self.videoView.host UTF8String]
+                                    Token:[self.videoView.token UTF8String]
+                              DisplayName:[self.videoView.displayName UTF8String]
+                               ResourceId:[self.videoView.resourceId UTF8String]
                                   Connect:self];
 
     [logger Log:[NSString stringWithFormat:@"VidyoConnectorConnect status = %d", status]];
