@@ -197,7 +197,6 @@ RCT_EXPORT_METHOD(refreshUI:(nonnull NSNumber *)reactTag) {
       videoContainerView.frame.size.height
     ]];
 
-    UIView *videoContainerView = self.videoView.videoContainerView;
     [self.connector ShowViewAt:&videoContainerView
                              X:0
                              Y:0
