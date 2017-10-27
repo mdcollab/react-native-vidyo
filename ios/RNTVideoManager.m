@@ -7,7 +7,6 @@
 
 @interface RNTVideoManager () <IConnect, RNTVideoViewDelegate> {
   @private
-    BOOL    autoJoin;
     BOOL    enableDebug;
     Logger  *logger;
 }
@@ -124,7 +123,6 @@ RCT_EXPORT_METHOD(refreshUI:(nonnull NSNumber *)reactTag) {
     logger = [[Logger alloc] init];
     [logger Log:@"RNTVideoManager::viewDidMoveToSuperview called."];
 
-    autoJoin = YES;
     enableDebug = NO;
 
     [VidyoClientConnector Initialize];
