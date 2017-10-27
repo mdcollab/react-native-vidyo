@@ -36,6 +36,14 @@ class Video extends React.Component {
     );
   }
 
+  toggleMicrophoneOn() {
+    UIManager.dispatchViewManagerCommand(
+      findNodeHandle(this),
+      UIManager.RNTVideo.Commands.toggleMicrophoneOn,
+      [],
+    );
+  }
+
   render() {
     return <RNTVideo {...this.props} />;
   }
