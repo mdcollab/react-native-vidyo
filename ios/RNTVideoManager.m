@@ -72,6 +72,10 @@ RCT_EXPORT_METHOD(toggleMicrophoneOn:(nonnull NSNumber *)reactTag) {
   }
 }
 
+RCT_EXPORT_METHOD(refreshUI:(nonnull NSNumber *)reactTag) {
+  [self RefreshUI];
+}
+
 #pragma mark -
 #pragma mark VidyoConnector Event Handlers
 

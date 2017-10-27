@@ -44,6 +44,14 @@ class Video extends React.Component {
     );
   }
 
+  refreshUI() {
+    UIManager.dispatchViewManagerCommand(
+      findNodeHandle(this),
+      UIManager.RNTVideo.Commands.refreshUI,
+      [],
+    );
+  }
+
   render() {
     return <RNTVideo {...this.props} />;
   }
