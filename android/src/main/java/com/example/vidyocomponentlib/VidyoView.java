@@ -52,8 +52,8 @@ public class VidyoView extends ConstraintLayout implements
     private String token;
     private String userName;
     private String resourceId;
-    private Boolean cameraOn;
-    private Boolean microphoneOn;
+    private Boolean cameraOn = true;
+    private Boolean microphoneOn = true;
     private Boolean mEnableDebug = true;
 
     public VidyoView(@NonNull Context context) {
@@ -262,7 +262,9 @@ public class VidyoView extends ConstraintLayout implements
     }
 
     public void toggleMicrophoneOn() {
+        mLogger.Log("microPhoneOn before: " + microphoneOn);
         if (mVidyoConnector.SetMicrophonePrivacy(!microphoneOn)) {
+            mLogger.Log("microPhoneOn after: " + microphoneOn);
             microphoneOn = !microphoneOn;
         }
     }
