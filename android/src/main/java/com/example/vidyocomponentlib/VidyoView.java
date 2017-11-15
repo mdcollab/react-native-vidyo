@@ -7,16 +7,17 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.constraint.ConstraintLayout;
 import android.util.AttributeSet;
-import android.util.Log;
-import android.view.View;
+import android.content.res.Configuration;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.view.WindowManager;
 import android.widget.FrameLayout;
-import android.widget.ImageView;
-import android.widget.ProgressBar;
-import android.widget.TextView;
 
+import com.facebook.react.bridge.Arguments;
+import com.facebook.react.bridge.ReactContext;
+import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.LifecycleEventListener;
+import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.vidyo.VidyoClient.Connector.Connector;
 import com.vidyo.VidyoClient.Connector.VidyoConnector;
@@ -25,9 +26,6 @@ import com.vidyo.VidyoClient.VidyoNetworkInterface;
 
 import java.lang.ref.WeakReference;
 
-/**
- * Created by patrykjablonski on 28.09.2017.
- */
 
 public class VidyoView extends ConstraintLayout implements
         VidyoConnector.IConnect,
@@ -36,28 +34,27 @@ public class VidyoView extends ConstraintLayout implements
 
     private static final String TAG = "VidyoView";
 
-    private enum VIDYO_CONNECTOR_STATE {
+    enum VIDYO_CONNECTOR_STATE {
         VC_CONNECTED,
         VC_DISCONNECTED,
         VC_DISCONNECTED_UNEXPECTED,
         VC_CONNECTION_FAILURE
     }
 
-    private FrameLayout imageContainer;
-    private ImageView endCallButton;
-    private ProgressBar progress;
-    private TextView errorText;
-
-    private boolean vidyoClientInitialized = false;
-    private VIDYO_CONNECTOR_STATE vidyoConnectorState = VIDYO_CONNECTOR_STATE.VC_DISCONNECTED;
-    private VidyoConnector vidyoConnector = null;
-    private boolean vidyoConnectorConstructed = false;
+    private VIDYO_CONNECTOR_STATE mVidyoConnectorState = VIDYO_CONNECTOR_STATE.VC_DISCONNECTED;
+    private boolean mVidyoConnectorConstructed = false;
+    private boolean mVidyoClientInitialized = false;
+    private Logger mLogger = Logger.getInstance();
+    private VidyoConnector mVidyoConnector = null;
+    private FrameLayout mVideoFrame;
     private WeakReference<ThemedReactContext> reactContext;
-
     private String host;
     private String token;
     private String userName;
     private String resourceId;
+    private Boolean cameraOn;
+    private Boolean microphoneOn;
+    private Boolean mEnableDebug = true;
 
     public VidyoView(@NonNull Context context) {
         super(context);
@@ -75,75 +72,65 @@ public class VidyoView extends ConstraintLayout implements
     }
 
     private void setUp() {
-        Log.d(TAG, "SET UP");
+        mLogger.Log("SET UP");
         inflate(getContext(), R.layout.component_vidyo_view, this);
 
         setWillNotDraw(false);
-
 
         final ThemedReactContext context = (ThemedReactContext) getContext();
 
         context.addLifecycleEventListener(new LifecycleEventListener() {
             @Override
             public void onHostResume() {
-                Log.d(TAG, "RESUME");
+                mLogger.Log("RESUME");
                 start();
             }
 
             @Override
             public void onHostPause() {
-                Log.d(TAG, "PAUSE");
-                stop();
+                mLogger.Log("PAUSE");
+                if (mVidyoConnectorConstructed) {
+                    mVidyoConnector.SetMode(VidyoConnector.VidyoConnectorMode.VIDYO_CONNECTORMODE_Background);
+                }
             }
 
             @Override
             public void onHostDestroy() {
-                Log.d(TAG, "DESTROY");
-                disconnect();
+                mLogger.Log("DESTROY");
+                mVidyoConnector.Disable();
+                Connector.Uninitialize();
             }
         });
 
         reactContext = new WeakReference<>((ThemedReactContext) getContext());
 
-
         setLayoutParams(new ConstraintLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-        imageContainer = (FrameLayout) findViewById(R.id.video_container);
-        endCallButton = (ImageView) findViewById(R.id.endCallButton);
-        progress = (ProgressBar) findViewById(R.id.connectProgress);
-        errorText = (TextView) findViewById(R.id.errorText);
+        mVideoFrame = (FrameLayout) findViewById(R.id.video_container);
+
+        // suppress keyboard
+        //getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
 
         if (reactContext.get() != null) {
             Connector.SetApplicationUIContext(reactContext.get().getCurrentActivity());
         }
 
-        vidyoClientInitialized = Connector.Initialize();
-
-        endCallButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                stop();
-            }
-        });
+        mVidyoClientInitialized = Connector.Initialize();
     }
 
     public void setHost(String host) {
-        Log.d(TAG, "SET HOST");
         this.host = host;
     }
 
     public void setToken(String token) {
-        Log.d(TAG, "SET TOKEN");
         this.token = token;
     }
 
     public void setResourceId(String resourceId) {
-        Log.d(TAG, "SET RESOURCE ID");
         this.resourceId = resourceId;
     }
 
     public void setUserName(String userName) {
-        Log.d(TAG, "SET USER NAME");
         this.userName = userName;
     }
 
@@ -153,139 +140,171 @@ public class VidyoView extends ConstraintLayout implements
     }
 
     public void start() {
-        Log.d(TAG, "start");
-        ViewTreeObserver viewTreeObserver = imageContainer.getViewTreeObserver();
+        mLogger.Log("start");
+        ViewTreeObserver viewTreeObserver = mVideoFrame.getViewTreeObserver();
         if (viewTreeObserver.isAlive()) {
-            Log.d(TAG, "observer alive");
             viewTreeObserver.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
                 @Override
                 public void onGlobalLayout() {
-                    Log.d(TAG, "OnGlobalLayout");
-                    imageContainer.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                    mVideoFrame.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+
                     // If the vidyo connector was not previously successfully constructed then construct it
-                    checkVidyoConnectionAndReconnect();
-                    connect();
+                    if (!mVidyoConnectorConstructed) {
+                        if (mVidyoClientInitialized) {
+                            mVidyoConnector = new VidyoConnector(mVideoFrame,
+                                    VidyoConnector.VidyoConnectorViewStyle.VIDYO_CONNECTORVIEWSTYLE_Default,
+                                    15,
+                                    "info@VidyoClient info@VidyoConnector warning",
+                                    "",
+                                    0);
+
+                            if (mVidyoConnector != null) {
+                                mVidyoConnectorConstructed = true;
+
+                                // If enableDebug is configured then enable debugging
+                                if (mEnableDebug) {
+                                    mVidyoConnector.EnableDebug(7776, "warning info@VidyoClient info@VidyoConnector");
+                                }
+
+                                RefreshUI();
+
+                                if (!mVidyoConnector.RegisterNetworkInterfaceEventListener(VidyoView.this)) {
+                                    mLogger.Log("VidyoConnector RegisterNetworkInterfaceEventListener failed");
+                                }
+
+                                if (!mVidyoConnector.RegisterLogEventListener(VidyoView.this, "info@VidyoClient info@VidyoConnector warning")) {
+                                    mLogger.Log("VidyoConnector RegisterLogEventListener failed");
+                                }
+                            } else {
+                                mLogger.Log("VidyoConnector Construction failed - cannot connect...");
+                            }
+                        } else {
+                            mLogger.Log("ERROR: VidyoClientInitialize failed - not constructing VidyoConnector ...");
+                        }
+
+                        Logger.getInstance().Log("onResume: mVidyoConnectorConstructed => " + (mVidyoConnectorConstructed ? "success" : "failed"));
+                    }
                 }
             });
-            viewTreeObserver.dispatchOnGlobalLayout();
+            //viewTreeObserver.dispatchOnGlobalLayout();
         }
-
     }
 
-    public void stop(){
-        Log.d(TAG, "stop");
-        if (vidyoConnectorConstructed) {
-            vidyoConnector.SetMode(VidyoConnector.VidyoConnectorMode.VIDYO_CONNECTORMODE_Background);
+    // The device interface orientation has changed
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        mLogger.Log("onConfigurationChanged");
+        super.onConfigurationChanged(newConfig);
+
+        // Refresh the video size after it is painted
+        ViewTreeObserver viewTreeObserver = mVideoFrame.getViewTreeObserver();
+        if (viewTreeObserver.isAlive()) {
+            viewTreeObserver.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                @Override
+                public void onGlobalLayout() {
+                    mVideoFrame.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+
+                    // Width/height values of views not updated at this point so need to wait
+                    // before refreshing UI
+
+                    RefreshUI();
+                }
+            });
+        }
+    }
+
+    /*
+     * Private Utility Functions
+     */
+
+    private void RefreshUI() {
+        mVidyoConnector.ShowViewAt(mVideoFrame, 0, 0, mVideoFrame.getWidth(), mVideoFrame.getHeight());
+        mLogger.Log("VidyoConnectorShowViewAt: x = 0, y = 0, w = " + mVideoFrame.getWidth() + ", h = " + mVideoFrame.getHeight());
+    }
+
+    private void ConnectorStateUpdated(VIDYO_CONNECTOR_STATE state, final String statusText) {
+        mLogger.Log("ConnectorStateUpdated, state = " + state.toString());
+        mVidyoConnectorState = state;
+        if (mVidyoConnectorState == VIDYO_CONNECTOR_STATE.VC_CONNECTION_FAILURE) {
+            emitVidyoConnectionFailure(reactContext.get(), getId(), "cannot connect");
+        }
+    }
+
+    public void connect() {
+        if (mVidyoConnectorState != VIDYO_CONNECTOR_STATE.VC_CONNECTED &&
+              mVidyoConnector != null &&
+              !resourceId.contains(" ") &&
+              !resourceId.contains("@")) {
+            mLogger.Log("host: " + host);
+            mLogger.Log("token: " + token);
+            mLogger.Log("userName: " + userName);
+            mLogger.Log("resoureId: " + resourceId);
+
+            if (!mVidyoConnector.Connect(host, token, userName, resourceId, this)) {
+                ConnectorStateUpdated(VIDYO_CONNECTOR_STATE.VC_CONNECTION_FAILURE, "Connection failed");
+                mLogger.Log("Status: " + false);
+            } else
+                mLogger.Log("Status: " + true);
         }
     }
 
     public void disconnect() {
-        Log.d(TAG, "Detach");
-        if(vidyoConnector != null) {
-            vidyoConnector.Disconnect();
-
-        }
-        Connector.Uninitialize();
-        EventEmitter.emmitVidyoConnectionEnd(reactContext.get(), getId());
-    }
-
-    public void connect() {
-        if (vidyoConnectorState != VIDYO_CONNECTOR_STATE.VC_CONNECTED && vidyoConnector != null) {
-            progress.setVisibility(VISIBLE);
-            Log.d(TAG, "host: " + host);
-            Log.d(TAG, "token: " + token);
-            Log.d(TAG, "userName: " + userName);
-            Log.d(TAG, "resoureId: " + resourceId);
-            if (!vidyoConnector.Connect(
-                    host,
-                    token,
-                    userName,
-                    resourceId,
-                    this)) {
-                onConnectorStateUpdeted(VIDYO_CONNECTOR_STATE.VC_CONNECTION_FAILURE, "Connection failed");
-                Log.d(TAG, "Status: " + false);
-            } else
-                Log.d(TAG, "Status: " + true);
+        mLogger.Log("Detach");
+        if (mVidyoConnector != null) {
+            mVidyoConnector.Disconnect();
         }
     }
 
-    private void checkVidyoConnectionAndReconnect() {
-        if (!vidyoConnectorConstructed) {
-            if (vidyoClientInitialized) {
-                connectVidyo();
-
-            } else {
-                Log.d(TAG, "ERROR: VidyoClientInitialize failed - not constructing VidyoConnector ...");
-            }
-
-            Log.d(TAG, "onResume: vidyoConnectorConstructed => " + (vidyoConnectorConstructed ? "success" : "failed"));
+    public void toggleCameraOn() {
+        if (mVidyoConnector.SetCameraPrivacy(!cameraOn)) {
+            cameraOn = !cameraOn;
         }
     }
 
-    public void connectVidyo() {
-        vidyoConnector = new VidyoConnector(imageContainer,
-                VidyoConnector.VidyoConnectorViewStyle.VIDYO_CONNECTORVIEWSTYLE_Default,
-                15,
-                "info@VidyoClient info@VidyoConnector warning",
-                "",
-                0);
-
-        vidyoConnectorConstructed = true;
-
-        refreshView();
-
-        if (!vidyoConnector.RegisterNetworkInterfaceEventListener(VidyoView.this)) {
-            Log.d(TAG, "VidyoConnector RegisterNetworkInterfaceEventListener failed");
-        }
-
-        if (!vidyoConnector.RegisterLogEventListener(VidyoView.this, "info@VidyoClient info@VidyoConnector warning")) {
-            Log.d(TAG, "VidyoConnector RegisterLogEventListener failed");
+    public void toggleMicrophoneOn() {
+        if (mVidyoConnector.SetMicrophonePrivacy(!microphoneOn)) {
+            microphoneOn = !microphoneOn;
         }
     }
 
-    private void refreshView() {
-        Log.d(TAG, "refreshView");
-        progress.setVisibility(GONE);
-        errorText.setVisibility(GONE);
-        vidyoConnector.ShowViewAt(imageContainer, 0, 0, imageContainer.getWidth(), imageContainer.getHeight());
+    public void switchCamera() {
+        mVidyoConnector.CycleCamera();
     }
 
-
-    private void hideProgress() {
-        progress.setVisibility(GONE);
+    public void refreshView() {
+        mLogger.Log("refreshView");
+        mVidyoConnector.ShowViewAt(mVideoFrame, 0, 0, mVideoFrame.getWidth(), mVideoFrame.getHeight());
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
-        Log.d(TAG, "OnDraw");
+        mLogger.Log("OnDraw");
         super.onDraw(canvas);
-
     }
 
     @Override
     protected void onFinishInflate() {
         super.onFinishInflate();
-        Log.d(TAG, "onFinishInflate");
+        mLogger.Log("onFinishInflate");
     }
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        Log.d(TAG, "onMeasure");
+        mLogger.Log("onMeasure");
     }
 
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         super.onLayout(changed, left, top, right, bottom);
-        Log.d(TAG, "onLayout");
-
-
+        mLogger.Log("onLayout");
     }
 
+//never used?
     public void restartConnection() {
-        Log.d(TAG, "Restart");
-        if (vidyoConnectorConstructed) {
-            vidyoConnector.SetMode(VidyoConnector.VidyoConnectorMode.VIDYO_CONNECTORMODE_Foreground);
+        mLogger.Log("Restart");
+        if (mVidyoConnectorConstructed) {
+            mVidyoConnector.SetMode(VidyoConnector.VidyoConnectorMode.VIDYO_CONNECTORMODE_Foreground);
         }
     }
 
@@ -297,85 +316,78 @@ public class VidyoView extends ConstraintLayout implements
         getLayoutParams().width = width;
     }
 
+    /*
+     *  Connector Events
+     */
 
-    @Override
     public void OnSuccess() {
-        Log.d(TAG, "Success, connected");
-        onConnectorStateUpdeted(VIDYO_CONNECTOR_STATE.VC_CONNECTED, "Connected");
-        EventEmitter.emmitVidyoConnected(reactContext.get(), getId());
+        mLogger.Log("OnSuccess: successfully connected.");
+        ConnectorStateUpdated(VIDYO_CONNECTOR_STATE.VC_CONNECTED, "Connected");
+        emitVidyoConnected(reactContext.get(), getId());
     }
 
-
-    @Override
-    public void OnFailure(VidyoConnector.VidyoConnectorFailReason vidyoConnectorFailReason) {
-        onConnectorStateUpdeted(VIDYO_CONNECTOR_STATE.VC_CONNECTION_FAILURE, "Connected");
-        Log.d(TAG, vidyoConnectorFailReason.toString());
-        EventEmitter.emmitVidyoConnectionFailure(reactContext.get(), getId(), vidyoConnectorFailReason.toString());
-        Log.d(TAG, "On failure = " + vidyoConnectorFailReason.toString());
+    public void OnFailure(VidyoConnector.VidyoConnectorFailReason reason) {
+        mLogger.Log("OnFailure: connection attempt failed, reason = " + reason.toString());
+        ConnectorStateUpdated(VIDYO_CONNECTOR_STATE.VC_CONNECTION_FAILURE, "Connection failed");
+        emitVidyoConnectionFailure(reactContext.get(), getId(), reason.toString());
     }
 
-    @Override
-    public void OnDisconnected(VidyoConnector.VidyoConnectorDisconnectReason vidyoConnectorDisconnectReason) {
-        if (vidyoConnectorDisconnectReason == VidyoConnector.VidyoConnectorDisconnectReason.VIDYO_CONNECTORDISCONNECTREASON_Disconnected) {
-            Log.d(TAG, "OnDisconnected: successfully disconnected, reason = " + vidyoConnectorDisconnectReason.toString());
-            onConnectorStateUpdeted(VIDYO_CONNECTOR_STATE.VC_DISCONNECTED, "Disconnected");
+    public void OnDisconnected(VidyoConnector.VidyoConnectorDisconnectReason reason) {
+        if (reason == VidyoConnector.VidyoConnectorDisconnectReason.VIDYO_CONNECTORDISCONNECTREASON_Disconnected) {
+            mLogger.Log("OnDisconnected: successfully disconnected, reason = " + reason.toString());
+            ConnectorStateUpdated(VIDYO_CONNECTOR_STATE.VC_DISCONNECTED, "Disconnected");
         } else {
-            Log.d(TAG, "OnDisconnected: successfully disconnected, reason = " + vidyoConnectorDisconnectReason.toString());
-            onConnectorStateUpdeted(VIDYO_CONNECTOR_STATE.VC_DISCONNECTED_UNEXPECTED, "Unexpected disconnection");
+            mLogger.Log("OnDisconnected: unexpected disconnection, reason = " + reason.toString());
+            ConnectorStateUpdated(VIDYO_CONNECTOR_STATE.VC_DISCONNECTED_UNEXPECTED, "Unexpected disconnection");
         }
+        emitVidyoConnectionEnd(reactContext.get(), getId());
     }
 
-    @Override
-    public void OnLog(VidyoLogRecord vidyoLogRecord) {
-
+    public void OnLog(VidyoLogRecord logRecord) {
+        mLogger.LogClientLib(logRecord.message);
     }
 
-    @Override
     public void OnNetworkInterfaceAdded(VidyoNetworkInterface vidyoNetworkInterface) {
-
+        mLogger.Log("OnNetworkInterfaceAdded: name=" + vidyoNetworkInterface.GetName() + " address=" + vidyoNetworkInterface.GetAddress() + " type=" + vidyoNetworkInterface.GetType() + " family=" + vidyoNetworkInterface.GetFamily());
     }
 
-    @Override
     public void OnNetworkInterfaceRemoved(VidyoNetworkInterface vidyoNetworkInterface) {
+        mLogger.Log("OnNetworkInterfaceRemoved: name=" + vidyoNetworkInterface.GetName() + " address=" + vidyoNetworkInterface.GetAddress() + " type=" + vidyoNetworkInterface.GetType() + " family=" + vidyoNetworkInterface.GetFamily());
 
     }
 
-    @Override
-    public void OnNetworkInterfaceSelected(VidyoNetworkInterface vidyoNetworkInterface,
-                                           VidyoNetworkInterface.VidyoNetworkInterfaceTransportType vidyoNetworkInterfaceTransportType) {
+    public void OnNetworkInterfaceSelected(VidyoNetworkInterface vidyoNetworkInterface, VidyoNetworkInterface.VidyoNetworkInterfaceTransportType vidyoNetworkInterfaceTransportType) {
+        mLogger.Log("OnNetworkInterfaceSelected: name=" + vidyoNetworkInterface.GetName() + " address=" + vidyoNetworkInterface.GetAddress() + " type=" + vidyoNetworkInterface.GetType() + " family=" + vidyoNetworkInterface.GetFamily());
 
     }
 
-    @Override
-    public void OnNetworkInterfaceStateUpdated(VidyoNetworkInterface vidyoNetworkInterface,
-                                               VidyoNetworkInterface.VidyoNetworkInterfaceState vidyoNetworkInterfaceState) {
-
+    public void OnNetworkInterfaceStateUpdated(VidyoNetworkInterface vidyoNetworkInterface, VidyoNetworkInterface.VidyoNetworkInterfaceState vidyoNetworkInterfaceState) {
+        mLogger.Log("OnNetworkInterfaceStateUpdated: name=" + vidyoNetworkInterface.GetName() + " address=" + vidyoNetworkInterface.GetAddress() + " type=" + vidyoNetworkInterface.GetType() + " family=" + vidyoNetworkInterface.GetFamily() + " state=" + vidyoNetworkInterfaceState);
     }
 
-    private void onConnectorStateUpdeted(VIDYO_CONNECTOR_STATE state, final String statusText) {
-        Log.d(TAG, "onConnectorStateUpdeted, state = " + state.toString());
-        Log.d(TAG, "onConnectorStateUpdeted, state text = " + statusText);
 
-        vidyoConnectorState = state;
+    private static final String CONNECTION_STOP = "onDisconnect";
+    private static final String CONNECTION_START = "onConnect";
+    private static final String CONNECTION_FAILURE = "onFailure";
 
-        ThemedReactContext context = reactContext.get();
-        if (context != null && context.getCurrentActivity() != null) {
-            context.getCurrentActivity().runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    if (vidyoConnectorState == VIDYO_CONNECTOR_STATE.VC_CONNECTED) {
-                        hideProgress();
-                        refreshView();
-                    } else if (vidyoConnectorState == VIDYO_CONNECTOR_STATE.VC_CONNECTION_FAILURE) {
-                        hideProgress();
-                        errorText.setVisibility(VISIBLE);
-                        errorText.setText(getContext().getString(R.string.cannot_connect));
-                        EventEmitter.emmitVidyoConnectionFailure(reactContext.get(), getId(), "cannot connect");
-                    }
-                }
-            });
+    static void emitVidyoConnectionEnd(ThemedReactContext context, int viewId) {
+        emit(context, viewId, CONNECTION_STOP, "");
+    }
 
+    static void emitVidyoConnected(ThemedReactContext context, int viewId) {
+        emit(context, viewId, CONNECTION_START, "");
+    }
+
+    static void emitVidyoConnectionFailure(ThemedReactContext context, int viewId, String errorText) {
+        emit(context, viewId, CONNECTION_FAILURE, errorText);
+    }
+
+    private static void emit(ThemedReactContext context, int eventId, String event, String message) {
+        if (context != null) {
+            WritableMap data = Arguments.createMap();
+            data.putString("event", event);
+            data.putString("message", message);
+            context.getJSModule(RCTEventEmitter.class).receiveEvent(eventId, "topChange", data);
         }
     }
-
 }

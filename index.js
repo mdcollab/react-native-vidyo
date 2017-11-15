@@ -1,9 +1,25 @@
 import PropTypes from "prop-types";
 import React from "react";
-import {findNodeHandle, requireNativeComponent, UIManager} from "react-native";
+import {findNodeHandle, requireNativeComponent, UIManager, View} from "react-native";
 
+
+const CONNECTION_START = "onConnect";
+const CONNECTION_STOP = "onDisconnect";
+const CONNECTION_FAILURE = "onFailure";
 
 class Video extends React.Component {
+  constructor() {
+    super();
+
+    this.onChange = this.onChange.bind(this);
+  }
+
+  onChange(event) {
+    if (event.nativeEvent.event === CONNECTION_START) return this.props.onConnect();
+    if (event.nativeEvent.event === CONNECTION_STOP) return this.props.onDisconnect();
+    if (event.nativeEvent.event === CONNECTION_FAILURE) return this.props.onFailure(event.nativeEvent.message);
+  }
+
   connect() {
     UIManager.dispatchViewManagerCommand(
       findNodeHandle(this),
@@ -53,11 +69,15 @@ class Video extends React.Component {
   }
 
   render() {
-    return <RNTVideo {...this.props} />;
+    return <RNTVideo
+      {...this.props}
+      onChange={this.onChange}
+    />;
   }
 }
 
 Video.propTypes = {
+  ...View.propTypes,
   host: PropTypes.string,
   token: PropTypes.string,
   displayName: PropTypes.string,
@@ -67,6 +87,6 @@ Video.propTypes = {
   onFailure: PropTypes.func,
 };
 
-var RNTVideo = requireNativeComponent('RNTVideo', Video);
+var RNTVideo = requireNativeComponent('RNTVideo', Video, {nativeOnly: {onChange: true}});
 
 module.exports = Video;
