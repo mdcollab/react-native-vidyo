@@ -12,14 +12,17 @@ import javax.annotation.Nullable;
 
 
 public class VidyoComponent extends SimpleViewManager<VidyoView> {
+
     private static final String COMPONENT_NAME = "RNTVideo";
 
     public static final int COMMAND_CONNECT = 1;
-    public static final int COMMAND_DISCONNECT = 2;
+    public static final int COMMAND_CLEAN_UP = 2;
     public static final int COMMAND_TOGGLE_CAMERA_ON = 3;
     public static final int COMMAND_TOGGLE_MICROPHONE_ON = 4;
     public static final int COMMAND_SWITCH_CAMERA = 5;
     public static final int COMMAND_REFRESH_UI = 6;
+
+    private VidyoView currentView;
 
     @Override
     public String getName() {
@@ -28,15 +31,16 @@ public class VidyoComponent extends SimpleViewManager<VidyoView> {
 
     @Override
     protected VidyoView createViewInstance(ThemedReactContext reactContext) {
-        return new VidyoView(reactContext);
+        currentView = new VidyoView(reactContext);
+        return currentView;
     }
 
-    @ReactProp(name = "height", defaultInt = 400)
+    @ReactProp(name = "height")
     public void setHeight(VidyoView view, int height) {
         view.setHeight(height);
     }
 
-    @ReactProp(name = "width", defaultInt = 400)
+    @ReactProp(name = "width")
     public void setWidth(VidyoView view, int width) {
         view.setWidth(width);
     }
@@ -65,7 +69,7 @@ public class VidyoComponent extends SimpleViewManager<VidyoView> {
     public Map<String,Integer> getCommandsMap() {
         return MapBuilder.of(
             "connect", COMMAND_CONNECT,
-            "disconnect", COMMAND_DISCONNECT,
+                "cleanUp", COMMAND_CLEAN_UP,
             "toggleCameraOn", COMMAND_TOGGLE_CAMERA_ON,
             "toggleMicrophoneOn", COMMAND_TOGGLE_MICROPHONE_ON,
             "switchCamera", COMMAND_SWITCH_CAMERA,
@@ -80,10 +84,6 @@ public class VidyoComponent extends SimpleViewManager<VidyoView> {
 		switch (commandType) {
             case COMMAND_CONNECT: {
                 view.connect();
-                return;
-            }
-            case COMMAND_DISCONNECT: {
-                view.disconnect();
                 return;
             }
             case COMMAND_TOGGLE_CAMERA_ON: {
@@ -101,6 +101,10 @@ public class VidyoComponent extends SimpleViewManager<VidyoView> {
             case COMMAND_REFRESH_UI: {
             //necessary on android?
                 view.refreshView();
+                return;
+            }
+            case COMMAND_CLEAN_UP: {
+                view.cleanUp();
                 return;
             }
 			default:
