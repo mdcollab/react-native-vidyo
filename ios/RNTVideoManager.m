@@ -26,6 +26,8 @@ RCT_EXPORT_VIEW_PROPERTY(host, NSString)
 RCT_EXPORT_VIEW_PROPERTY(token, NSString)
 RCT_EXPORT_VIEW_PROPERTY(displayName, NSString)
 RCT_EXPORT_VIEW_PROPERTY(resourceId, NSString)
+RCT_EXPORT_VIEW_PROPERTY(width, NSNumber)
+RCT_EXPORT_VIEW_PROPERTY(height, NSNumber)
 RCT_EXPORT_VIEW_PROPERTY(onConnect, RCTBubblingEventBlock)
 RCT_EXPORT_VIEW_PROPERTY(onDisconnect, RCTBubblingEventBlock)
 RCT_EXPORT_VIEW_PROPERTY(onFailure, RCTBubblingEventBlock)
@@ -43,7 +45,7 @@ RCT_EXPORT_METHOD(connect:(nonnull NSNumber *)reactTag) {
     [self _connect];
 }
 
-RCT_EXPORT_METHOD(disconnect:(nonnull NSNumber *)reactTag) {
+RCT_EXPORT_METHOD(cleanUp:(nonnull NSNumber *)reactTag) {
     [self.connector Disconnect];
 }
 
@@ -195,17 +197,17 @@ RCT_EXPORT_METHOD(refreshUI:(nonnull NSNumber *)reactTag) {
 
     [logger Log:[
       NSString stringWithFormat:@"VidyoConnectorShowViewAt: x = %f, y = %f, w = %f, h = %f",
-      videoContainerView.frame.origin.x,
-      videoContainerView.frame.origin.y,
-      videoContainerView.frame.size.width,
-      videoContainerView.frame.size.height
+      0.0,
+      0.0,
+      [self.videoView.width floatValue],
+      [self.videoView.height floatValue]
     ]];
 
     [self.connector ShowViewAt:&videoContainerView
                              X:0
                              Y:0
-                         Width:videoContainerView.bounds.size.width
-                        Height:videoContainerView.bounds.size.height];
+                         Width:[self.videoView.width floatValue]
+                        Height:[self.videoView.height floatValue]];
 }
 
 @end
