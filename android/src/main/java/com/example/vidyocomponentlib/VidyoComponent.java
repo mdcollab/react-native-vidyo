@@ -69,7 +69,7 @@ public class VidyoComponent extends SimpleViewManager<VidyoView> {
     public Map<String,Integer> getCommandsMap() {
         return MapBuilder.of(
             "connect", COMMAND_CONNECT,
-                "cleanUp", COMMAND_CLEAN_UP,
+            "cleanUp", COMMAND_CLEAN_UP,
             "toggleCameraOn", COMMAND_TOGGLE_CAMERA_ON,
             "toggleMicrophoneOn", COMMAND_TOGGLE_MICROPHONE_ON,
             "switchCamera", COMMAND_SWITCH_CAMERA,
@@ -99,7 +99,7 @@ public class VidyoComponent extends SimpleViewManager<VidyoView> {
                 return;
             }
             case COMMAND_REFRESH_UI: {
-            //necessary on android?
+                //necessary on android?
                 view.refreshView();
                 return;
             }

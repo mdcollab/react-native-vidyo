@@ -48,7 +48,6 @@ public class VidyoView extends ConstraintLayout implements
     private boolean mVidyoClientInitialized = false;
     private Logger mLogger = Logger.getInstance();
     private VidyoConnector mVidyoConnector = null;
-
     private FrameLayout mVideoFrame;
     private WeakReference<ThemedReactContext> reactContext;
     private String host;
@@ -120,7 +119,6 @@ public class VidyoView extends ConstraintLayout implements
         setLayoutParams(new ConstraintLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         mVideoFrame = (FrameLayout) findViewById(R.id.video_container);
-        mLogger.Log("vidyo frame created" + mVideoFrame);
         // suppress keyboard
         //getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
 
@@ -273,11 +271,6 @@ public class VidyoView extends ConstraintLayout implements
 
     public void refreshView() {
         mLogger.Log("refreshView");
-        ThemedReactContext context = (ThemedReactContext) getContext();
-
-//        Point outSize = new Point();
-//        context.getCurrentActivity().getWindowManager().getDefaultDisplay().getSize(outSize);
-
         mVidyoConnector.ShowViewAt(mVideoFrame, 0, 0, this.width, this.height);
         mLogger.Log("VidyoConnectorShowViewAt: x = 0, y = 0, w = " + this.width + ", h = " + this.height);
 
@@ -327,10 +320,6 @@ public class VidyoView extends ConstraintLayout implements
     }
 
     public void connect() {
-        mLogger.Log("mVidyoConnectorState: " + mVidyoConnectorState);
-        mLogger.Log("mVidyoConnector: " + mVidyoConnector);
-        mLogger.Log("resourceId: " + resourceId);
-
         if (mVidyoConnectorState != VIDYO_CONNECTOR_STATE.VC_CONNECTED &&
               mVidyoConnector != null &&
               !resourceId.contains(" ") &&
