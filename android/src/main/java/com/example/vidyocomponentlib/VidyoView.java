@@ -219,11 +219,6 @@ public class VidyoView extends ConstraintLayout implements
                 @Override
                 public void onGlobalLayout() {
                     mVideoFrame.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                    try {
-                        TimeUnit.SECONDS.sleep(5);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
                     // Width/height values of views not updated at this point so need to wait
                     // before refreshing UI
 
