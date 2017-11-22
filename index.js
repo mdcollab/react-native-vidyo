@@ -28,10 +28,10 @@ class Video extends React.Component {
     );
   }
 
-  disconnect() {
+  cleanUp() {
     UIManager.dispatchViewManagerCommand(
       findNodeHandle(this),
-      UIManager.RNTVideo.Commands.disconnect,
+      UIManager.RNTVideo.Commands.cleanUp,
       [],
     );
   }
@@ -79,6 +79,8 @@ class Video extends React.Component {
 Video.propTypes = {
   ...View.propTypes,
   host: PropTypes.string,
+  height: PropTypes.number,
+  width: PropTypes.number,
   token: PropTypes.string,
   displayName: PropTypes.string,
   resourceId: PropTypes.string,

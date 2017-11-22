@@ -104,7 +104,7 @@ public class VidyoView extends ConstraintLayout implements
             @Override
             public void onHostPause() {
                 mLogger.Log("Vidyo: PAUSE");
-                if (mVidyoConnectorConstructed) {
+                if (mVidyoConnectorConstructed && mVidyoConnector != null) {
                     mVidyoConnector.SetMode(VidyoConnector.VidyoConnectorMode.VIDYO_CONNECTORMODE_Background);
                 }
             }
