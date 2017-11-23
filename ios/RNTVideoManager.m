@@ -197,17 +197,17 @@ RCT_EXPORT_METHOD(refreshUI:(nonnull NSNumber *)reactTag) {
 
     [logger Log:[
       NSString stringWithFormat:@"VidyoConnectorShowViewAt: x = %f, y = %f, w = %f, h = %f",
-      0.0,
-      0.0,
-      [self.videoView.width floatValue],
-      [self.videoView.height floatValue]
+      videoContainerView.frame.origin.x,
+      videoContainerView.frame.origin.y,
+      videoContainerView.frame.size.width,
+      videoContainerView.frame.size.height
     ]];
 
     [self.connector ShowViewAt:&videoContainerView
                              X:0
                              Y:0
-                         Width:[self.videoView.width floatValue]
-                        Height:[self.videoView.height floatValue]];
+                         Width:videoContainerView.bounds.size.width
+                        Height:videoContainerView.bounds.size.height];
 }
 
 @end
