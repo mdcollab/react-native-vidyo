@@ -1,6 +1,6 @@
 import PropTypes from "prop-types";
 import React from "react";
-import {findNodeHandle, requireNativeComponent, UIManager, View} from "react-native";
+import {findNodeHandle, requireNativeComponent, UIManager, View, ViewPropTypes} from "react-native";
 
 
 const CONNECTION_START = "onConnect";
@@ -77,7 +77,7 @@ class Video extends React.Component {
 }
 
 Video.propTypes = {
-  ...View.propTypes,
+  ...ViewPropTypes,
   host: PropTypes.string,
   height: PropTypes.number,
   width: PropTypes.number,
